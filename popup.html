@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cookie 抓取器 v2.2</title>
+  <style>
+    body {
+      font-family: 'Microsoft YaHei', sans-serif;
+      width: 450px;
+      margin: 0;
+      padding: 15px;
+      background-color: #f7f7f7;
+      color: #333;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #4285f4;
+      padding-bottom: 10px;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0;
+      color: #4285f4;
+    }
+    .site-info {
+      background-color: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .site-info h2 {
+      font-size: 16px;
+      margin: 0 0 10px 0;
+      color: #4285f4;
+      display: flex;
+      align-items: center;
+    }
+    .site-info h2 svg {
+      margin-right: 8px;
+    }
+    .info-row {
+      display: flex;
+      margin-bottom: 12px;
+    }
+    .info-label {
+      flex: 0 0 90px;
+      font-weight: bold;
+      color: #555;
+    }
+    .info-value {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      word-break: break-all;
+      font-family: 'Consolas', monospace;
+      font-size: 14px;
+      padding: 5px;
+      background-color: #f9f9f9;
+      border-radius: 3px;
+      max-height: 60px;
+      overflow-y: auto;
+      border: 1px solid #ebebeb;
+    }
+    .cookie-content {
+      max-height: 160px;
+      overflow-y: auto;
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+    .clickable {
+      cursor: pointer;
+      position: relative;
+    }
+    .clickable:hover::after {
+      content: "点击复制";
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      background-color: rgba(0,0,0,0.7);
+      color: white;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-size: 12px;
+    }
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+    button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    button svg {
+      margin-right: 5px;
+    }
+    button:hover {
+      background-color: #3367d6;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    button.secondary {
+      background-color: #f1f1f1;
+      color: #333;
+      border: 1px solid #ddd;
+    }
+    button.secondary:hover {
+      background-color: #e5e5e5;
+    }
+    button.danger {
+      background-color: #dc3545;
+      color: white;
+    }
+    button.danger:hover {
+      background-color: #c82333;
+    }
+    button.success {
+      background-color: #28a745;
+      color: white;
+    }
+    button.success:hover {
+      background-color: #218838;
+    }
+    .copy-notice {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      display: none;
+      z-index: 1000;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      font-size: 14px;
+      display: none;
+    }
+    .status.success {
+      background-color: #e6f4ea;
+      color: #137333;
+      border-left: 4px solid #34a853;
+    }
+    .status.error {
+      background-color: #fce8e6;
+      color: #c53929;
+      border-left: 4px solid #ea4335;
+    }
+    .status.info {
+      background-color: #e8f0fe;
+      color: #1967d2;
+      border-left: 4px solid #4285f4;
+    }
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      flex-wrap: wrap;
+    }
+    .ua-display {
+      max-height: 60px;
+      overflow-y: auto;
+    }
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+    
+    /* 首次使用公告样式 */
+    .announcement {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      display: none;
+    }
+    
+    .announcement-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80%;
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .announcement h3 {
+      color: #4285f4;
+      margin-top: 0;
+      font-size: 18px;
+    }
+    
+    .announcement p {
+      font-size: 14px;
+      line-height: 1.5;
+      margin-bottom: 15px;
+    }
+    
+    .announcement ul {
+      margin-left: 20px;
+      margin-bottom: 15px;
+    }
+    
+    .announcement li {
+      margin-bottom: 5px;
+    }
+    
+    .signature {
+      font-style: italic;
+      text-align: right;
+      color: #555;
+    }
+    
+    .announcement-button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      float: right;
+      margin-top: 10px;
+    }
+    
+    .announcement-button:hover {
+      background-color: #3367d6;
+    }
+    
+    /* 导入Cookie弹窗样式 */
+    .import-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      z-index: 1000;
+      display: none;
+    }
+    
+    .import-modal-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 90%;
+      max-width: 400px;
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    .import-modal h3 {
+      color: #4285f4;
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    
+    .import-modal textarea {
+      width: 100%;
+      height: 120px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 8px;
+      font-family: 'Consolas', monospace;
+      font-size: 13px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    
+    .import-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 15px;
+    }
+    
+    .import-modal-actions button {
+      padding: 8px 16px;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <!-- 首次使用公告 -->
+  <div id="firstTimeAnnouncement" class="announcement">
+    <div class="announcement-content">
+      <h3>欢迎使用 Cookie快取 v2.2</h3>
+      <p>本插件已优化Cookie抓取方式，现支持更多类型的站点：</p>
+      <ul style="font-size: 13px; line-height: 1.6; margin: 10px 0;">
+        <li>NexusPHP站点（c_secure_系列）</li>
+        <li>WordPress站点</li>
+        <li>使用Cloudflare的站点（cf_clearance）</li>
+        <li>各种Session类型（PHP、Java、ASP.NET等）</li>
+        <li>JWT令牌认证站点</li>
+        <li>支持子域名和跨域Cookie抓取</li>
+      </ul>
+      <p style="font-size: 13px;">v2.2更新：修复Cookie导入问题，支持覆盖已有Cookie，改进多种Cookie格式支持。</p>
+      <p class="signature">-------by啥也不会</p>
+      <button id="closeAnnouncement" class="announcement-button">我知道了</button>
+    </div>
+  </div>
+
+  <!-- 导入Cookie弹窗 -->
+  <div id="importModal" class="import-modal">
+    <div class="import-modal-content">
+      <h3>导入Cookie</h3>
+      <div class="help-text">请输入Cookie字符串，支持以下格式：
+        <br>• name1=value1; name2=value2
+        <br>• 每行一个Cookie（name=value）
+        <br>• 从Chrome开发者工具复制的格式
+        <br>• 已存在的同名Cookie将被覆盖
+      </div>
+      <textarea id="cookieInput" placeholder="例如：
+c_secure_uid=123456; c_secure_pass=abcdef
+cf_clearance=xyz123
+PHPSESSID=abc123def456"></textarea>
+      <div class="import-modal-actions">
+        <button id="cancelImportBtn" class="secondary">取消</button>
+        <button id="confirmImportBtn" class="success">导入</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="header">
+    <h1>Cookie 抓取器</h1>
+  </div>
+  
+  <div id="status" class="status"></div>
+  
+  <div class="site-info">
+    <h2>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 20C7.59 20 4 16.41 4 12C4 7.59 7.59 4 12 4C16.41 4 20 7.59 20 12C20 16.41 16.41 20 12 20ZM11 7H13V9H11V7ZM11 11H13V17H11V11Z" fill="#4285f4"/>
+      </svg>
+      当前站点信息
+    </h2>
+    <div class="info-row">
+      <div class="info-label">域名:</div>
+      <div class="info-value clickable" id="currentDomain">-</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">User Agent:</div>
+      <div class="info-value clickable ua-display" id="currentUA">-</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">Cookie:</div>
+      <div class="info-value clickable cookie-content" id="currentCookie">-</div>
+    </div>
+    
+    <div class="actions">
+      <button id="copyDomainBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3.9 12c0-1.71 1.39-3.1 3.1-3.1h4V7H7c-2.76 0-5 2.24-5 5s2.24 5 5 5h4v-1.9H7c-1.71 0-3.1-1.39-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.71 0 3.1 1.39 3.1 3.1s-1.39 3.1-3.1 3.1h-4V17h4c2.76 0 5-2.24 5-5s-2.24-5-5-5z" fill="white"/>
+        </svg>
+        复制域名
+      </button>
+      <button id="copyCookieBtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 1H4C2.9 1 2 1.9 2 3V17H4V3H16V1ZM19 5H8C6.9 5 6 5.9 6 7V21C6 22.1 6.9 23 8 23H19C20.1 23 21 22.1 21 21V7C21 5.9 20.1 5 19 5ZM19 21H8V7H19V21Z" fill="white"/>
+        </svg>
+        复制Cookie
+      </button>
+      <button id="copyUABtn">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 12C14.21 12 16 10.21 16 8C16 5.79 14.21 4 12 4C9.79 4 8 5.79 8 8C8 10.21 9.79 12 12 12ZM12 14C9.33 14 4 15.34 4 18V20H20V18C20 15.34 14.67 14 12 14Z" fill="white"/>
+        </svg>
+        复制UA
+      </button>
+      <button id="deleteCookiesBtn" class="danger">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" fill="white"/>
+        </svg>
+        删除Cookie
+      </button>
+      <button id="importCookiesBtn" class="success">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" fill="white"/>
+        </svg>
+        导入Cookie
+      </button>
+    </div>
+  </div>
+  
+  <div id="copyNotice" class="copy-notice">已复制到剪贴板</div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
